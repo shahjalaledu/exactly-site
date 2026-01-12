@@ -1,0 +1,27 @@
+      - name: Auto-inject TTS script into HTML files
+        run: |
+          changed=false
+          for file in $(find . -name "*.html" ! -path "./.git/*" ! -path "./node_modules/*"); do
+            if ! grep -q "tts-player.js" "$file"; then
+              # Insert before </body> if present, else append at end
+              if grep -qi "</body>" "$file"; then
+                # Use sed to insert the script tag before the closing body
+                # Note: this assumes UTF-8 and simple HTML, not perfect but works for many static pages
+                sed -i 's#</body>#  <script src="tts-player.js"></script>\n</body>#I' "$file"
+              else
+                echo '<script src="tts-player.js"></script>' >> "$file"
+              fi
+              echo "Injected tts-player.js into $file"
+              changed=true
+            fi
+          done
+
+          if [ "$changed" = true ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Auto-inject TTS script into HTML files [skip ci]" || echo "Nothing to commit"
+            git push
+          else
+            echo "No HTML files needed TTS injection."
+          fi
